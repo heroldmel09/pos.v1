@@ -1,0 +1,73 @@
+✅ Step 1: Allow MySQL to listen on all interfaces
+
+Find this part in [mysqld] section:
+
+# bind-address="127.0.0.1" 
+# bind-address = ::1          # for ipv6
+
+
+Change it to:
+
+bind-address = 0.0.0.0
+
+
+This will allow MySQL to accept connections from any network interface (including your ZeroTier virtual adapter).
+
+✅ Step 2: Restart MySQL service
+
+Since you’re using XAMPP, restart MySQL from the XAMPP Control Panel so the changes take effect.
+
+✅ Step 3: Create a user that can connect from ZeroTier
+
+By default, root in XAMPP is restricted to localhost. You need to allow access for ZeroTier IPs (192.168.195.x range).
+
+Run this in your MySQL console:
+
+-- Replace 'yourpassword' with a strong password
+CREATE USER 'root'@'192.168.195.%' IDENTIFIED BY 'yourpassword';
+
+GRANT ALL PRIVILEGES ON pos.* TO 'root'@'192.168.195.%';
+FLUSH PRIVILEGES;
+
+
+This will allow any ZeroTier client with an IP in 192.168.195.* to log in as root.
+
+✅ Step 4: Update your Java connection
+
+In your DatabaseConnection class, change:
+
+String server = "192.168.195.57";  
+String userName = "root";  
+String password = "yourpassword";  // must match the password you set above
+
+
+
+
+That '192.168.195.%' part is a host filter for MySQL. Here’s how it works:
+
+'root'@'localhost' → user can only connect from the same machine.
+
+'root'@'192.168.195.57' → user can only connect from that exact ZeroTier IP.
+
+'root'@'192.168.195.%' → user can connect from any IP in the 192.168.195.x range (your ZeroTier network).
+
+So if your ZeroTier IP is 192.168.195.57, you can either:
+
+Option 1 – Allow only your device
+CREATE USER 'root'@'192.168.195.57' IDENTIFIED BY 'yourpassword';
+GRANT ALL PRIVILEGES ON pos.* TO 'root'@'192.168.195.57';
+
+Option 2 – Allow any device in your ZeroTier network
+CREATE USER 'root'@'192.168.195.%' IDENTIFIED BY 'yourpassword';
+GRANT ALL PRIVILEGES ON pos.* TO 'root'@'192.168.195.%';
+
+
+👉 If this is just for you → use Option 1 (more secure).
+👉 If you expect multiple clients (like other PCs on the same ZeroTier network) → use Option 2.
+
+⚠️ Don’t forget to run:
+
+FLUSH PRIVILEGES;
+
+
+Would you like me to also show you how to check which users MySQL already allows (so you don’t create duplicates)?
